@@ -716,7 +716,6 @@ export default function (Firebase: any): AnyObject {
           }
           //  if the data comes from local change
           if (querySnapshot.metadata.hasPendingWrites) {
-            // if data comes from server
             // this is only the result of a local modification which does not
             // require to do anything else.
           }
