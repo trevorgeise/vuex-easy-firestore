@@ -696,8 +696,6 @@ export default function (Firebase: any): AnyObject {
           if (querySnapshot.metadata.fromCache) {
             // if it's the very first call, we are at the initial app load. If so, we'll use
             // the data in cache (if available) to populate the state.
-            // if it's not, this is only the result of a local modification which does not
-            // require to do anything else.
             if (!gotFirstLocalResponse) {
               // 'doc' mode:
               if (!getters.collectionMode) {
@@ -716,7 +714,12 @@ export default function (Firebase: any): AnyObject {
               gotFirstLocalResponse = true
             }
           }
-          // if data comes from server
+          //  if the data comes from local change
+          if (querySnapshot.metadata.hasPendingWrites) {
+            // if data comes from server
+            // this is only the result of a local modification which does not
+            // require to do anything else.
+          }
           else {
             // 'doc' mode:
             if (!getters.collectionMode) {
