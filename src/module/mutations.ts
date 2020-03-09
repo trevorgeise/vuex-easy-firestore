@@ -7,6 +7,7 @@ import { AnyObject } from '../declarations'
 import { isArrayHelper } from '../utils/arrayHelpers'
 import { isIncrementHelper } from '../utils/incrementHelper'
 import getStateWithSync from './state'
+import get from 'lodash/get';
 
 /**
  * a function returning the mutations object
@@ -81,20 +82,63 @@ export default function (userState: object): AnyObject {
         ref = ref[patches.id]
       }
       if (!ref) return logError('patch-no-ref')
-      return Object.keys(patches).forEach(key => {
-        let newVal = patches[key]
-        // Merge if exists
+
+      function dotNotate(obj, target, prefix) {
+        (target = target || {}), (prefix = prefix || '');
+        Object.keys(obj).forEach(function(key) {
+          // console.log('dot key', obj[key])
+          const keyValue = obj[key];
+          if (
+            typeof keyValue === 'object' &&
+            keyValue !== null &&
+            !keyValue.seconds &&
+            !keyValue.isIncrementHelper &&
+            !isArray(keyValue) &&
+            get(ref, prefix + key) // check if this object exists in vuex yet
+          ) {
+            dotNotate(obj[key], target, prefix + key + '.');
+          } else {
+            return (target[prefix + key] = obj[key]);
+          }
+        });
+        return target;
+      }
+      //  convert to dot notation keys
+      const dotPatches = dotNotate(patches, {}, '');
+      const patchKeys = Object.keys(dotPatches);
+      // console.log('patch keys', patchKeys);
+      return patchKeys.forEach((k, n) => {
+        if (n === 0) {
+          //  first key is page id
+          return;
+        }
+        const pathArray = k.split('.');
+        const key = pathArray.pop();
+        // console.log(pathArray);
+        const updateObject = pathArray.length
+          ? get(ref, pathArray)
+          : ref;
+        // console.log(updateObject);
+        // console.log(key);
+        let newVal = dotPatches[k];
+        // console.log('new val from dot patches', newVal);
+        const originalVal = updateObject[key];
+        newVal = helpers(originalVal, newVal);
+        // console.log('val after helpers', newVal);
         function helpers (originVal, newVal) {
+          // console.log('newVal1', newVal)
           if (isArray(originVal) && isArrayHelper(newVal)) {
             newVal = newVal.executeOn(originVal)
           }
           if (isNumber(originVal) && isIncrementHelper(newVal)) {
+            // console.log('new val before inc', newVal);
             newVal = newVal.executeOn(originVal)
+            // console.log('after increment', newVal);
           }
           return newVal // always return newVal as fallback!!
         }
-        newVal = merge({ extensions: [helpers] }, ref[key], patches[key])
-        this._vm.$set(ref, key, newVal)
+        // console.log('final val', newVal);
+        this._vm.$set(updateObject, key, newVal);
       })
     },
     DELETE_DOC (state, id) {

@@ -4,7 +4,7 @@
 import typescript from 'rollup-plugin-typescript2'
 // import { terser } from 'rollup-plugin-terser'
 // import resolve from 'rollup-plugin-node-resolve'
-
+import commonjs from 'rollup-plugin-commonjs';
 // ------------------------------------------------------------------------------------------
 // formats
 // ------------------------------------------------------------------------------------------
@@ -24,6 +24,13 @@ const name = pkg.name
 const className = name.replace(/(^\w|-\w)/g, c => c.replace('-', '').toUpperCase())
 const external = Object.keys(pkg.dependencies || [])
 const plugins = [
+  commonjs({
+    namedExports: {
+        'node_modules/lodash/index.js': [
+            'get',
+        ]
+    }
+}),
   // resolve({only: [
   //   'compare-anything',
   //   'copy-anything',
